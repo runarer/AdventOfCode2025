@@ -1,4 +1,6 @@
-﻿string line;
+﻿using System.ComponentModel.Design;
+
+string line;
 try
 {
     line = File.ReadAllText(args[0]).Trim();
@@ -67,53 +69,27 @@ long SumAllSillyNumbers(Range range)
     long currentNumber = range.Start;
 
     while (currentNumber <= range.End)
-    {
-        long temp = 0;
+    {        
         int numberOfDigits = NumberOfDigits(currentNumber);
-        switch (numberOfDigits)
+
+        if(numberOfDigits == 2 || numberOfDigits == 3 || numberOfDigits == 5 || numberOfDigits == 7)
+            sum += SillyNumber(currentNumber, numberOfDigits, 1);
+        
+        else if(numberOfDigits == 4 )
+            sum += SillyNumber(currentNumber, numberOfDigits, 2);
+        
+        else if (numberOfDigits == 6 || numberOfDigits == 8 || numberOfDigits == 10)
         {
-            case 1:
-                break;
-            case 2:
-                sum += SillyNumber(currentNumber, numberOfDigits, 1);
-            break;
-            case 3:
-                sum += SillyNumber(currentNumber, numberOfDigits, 1);
-                break;
-            case 4:
-                sum += SillyNumber(currentNumber, numberOfDigits, 2);
-                break;
-            case 5:
-                sum += SillyNumber(currentNumber, numberOfDigits, 1);
-                break;
-            case 6:
-                temp = SillyNumber(currentNumber, numberOfDigits, 2);
-                if (temp == 0)
-                    sum += SillyNumber(currentNumber, numberOfDigits, 3);
-                else
-                    sum += temp;
-                break;
-            case 7:
-                sum += SillyNumber(currentNumber, numberOfDigits, 1);
-                break;
-            case 8:
-                temp = SillyNumber(currentNumber, numberOfDigits, 2);
-                if (temp == 0)
-                    sum += SillyNumber(currentNumber, numberOfDigits, 4);
-                else
-                    sum += temp;
-                break; 
-            case 9:
-                sum += SillyNumber(currentNumber, numberOfDigits, 3);
-                break;
-            case 10:
-                temp = SillyNumber(currentNumber, numberOfDigits, 2);
-                if (temp == 0)
-                    sum += SillyNumber(currentNumber, numberOfDigits, 5);
-                else
-                    sum += temp;
-                break;
+            long temp = SillyNumber(currentNumber, numberOfDigits, 2);
+            if (temp == 0)
+                sum += SillyNumber(currentNumber, numberOfDigits, numberOfDigits/2);
+            else
+                sum += temp;
         }
+        
+        else if(numberOfDigits == 9 )
+            sum += SillyNumber(currentNumber, numberOfDigits, 3);
+        
         currentNumber++;
     }
 

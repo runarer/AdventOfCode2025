@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.Design;
-
-string line;
+﻿string line;
 try
 {
     line = File.ReadAllText(args[0]).Trim();

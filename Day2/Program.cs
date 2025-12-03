@@ -13,6 +13,8 @@ long sillyNumbers = ranges.Sum(SumSillyNumbers);
 
 Console.WriteLine($"Part 1: {sillyNumbers}");
 
+//Console.WriteLine($"Largest Number of digits: {LargestNumber(ranges)}");
+
 return 0;
 
 
@@ -53,6 +55,16 @@ long SumSillyNumbers(Range range)
     return sum;
 }
 
+/* For part 2 I think it might be better to produce silly numbers and 
+ * check if they are in range. Then starting and stopping the production
+ * at numbers based on the range.
+ */
+
+//// First so research; find largest number -> It's 10
+//long LargestNumber(Range[] ranges)
+//{
+//    return NumberOfDigits(ranges.Aggregate(0L, (a, b) => Math.Max(a, b.End)));
+//}
 struct Range(long start, long end)
 {
     public long Start = start; public long End = end;

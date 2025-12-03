@@ -10,10 +10,13 @@ try
 
 Range[] ranges = [..line.Split(',').Select(CreateRange)];
 long sillyNumbers = ranges.Sum(SumSillyNumbers);
+long allSillyNumbers = ranges.Sum(SumAllSillyNumbers);
 
 Console.WriteLine($"Part 1: {sillyNumbers}");
+Console.WriteLine($"Part 1: {allSillyNumbers}");
 
 //Console.WriteLine($"Largest Number of digits: {LargestNumber(ranges)}");
+
 
 return 0;
 
@@ -35,29 +38,21 @@ long SumSillyNumbers(Range range)
     long sum = 0;
     long currentNumber = range.Start;
 
-    while(currentNumber <= range.End)
+    while (currentNumber <= range.End)
     {
         // If number of digits are odd, cant be silly number.
         // Jump to next non odd.
         int numberOfDigits = NumberOfDigits(currentNumber);
-        if (numberOfDigits % 2 != 0 ) {
-            currentNumber = (long)Math.Pow(10 ,numberOfDigits);
-            continue;
-        }
-        // integer division gives us the first n/2 digits,
-        // mod gives us the second n/ digits.
-        int splitter = (int)Math.Pow(10,(numberOfDigits / 2));
-        if ((currentNumber % splitter) == (currentNumber / splitter)) 
-            sum += currentNumber;
+        if (numberOfDigits % 2 == 0)
+            sum += SillyNumber(currentNumber, numberOfDigits, numberOfDigits/2);
         currentNumber++;
     }
-
     return sum;
 }
 
 /* For part 2 I think it might be better to produce silly numbers and 
  * check if they are in range. Then starting and stopping the production
- * at numbers based on the range.
+ * at numbers based on the range. NO! Just a general solution fro part 1.
  */
 
 //// First so research; find largest number -> It's 10
@@ -65,6 +60,80 @@ long SumSillyNumbers(Range range)
 //{
 //    return NumberOfDigits(ranges.Aggregate(0L, (a, b) => Math.Max(a, b.End)));
 //}
+
+long SumAllSillyNumbers(Range range)
+{
+    long sum = 0;
+    long currentNumber = range.Start;
+
+    while (currentNumber <= range.End)
+    {
+        long temp = 0;
+        int numberOfDigits = NumberOfDigits(currentNumber);
+        switch (numberOfDigits)
+        {
+            case 1:
+                break;
+            case 2:
+                sum += SillyNumber(currentNumber, numberOfDigits, 1);
+            break;
+            case 3:
+                sum += SillyNumber(currentNumber, numberOfDigits, 1);
+                break;
+            case 4:
+                sum += SillyNumber(currentNumber, numberOfDigits, 2);
+                break;
+            case 5:
+                sum += SillyNumber(currentNumber, numberOfDigits, 1);
+                break;
+            case 6:
+                temp = SillyNumber(currentNumber, numberOfDigits, 2);
+                if (temp == 0)
+                    sum += SillyNumber(currentNumber, numberOfDigits, 3);
+                else
+                    sum += temp;
+                break;
+            case 7:
+                sum += SillyNumber(currentNumber, numberOfDigits, 1);
+                break;
+            case 8:
+                temp = SillyNumber(currentNumber, numberOfDigits, 2);
+                if (temp == 0)
+                    sum += SillyNumber(currentNumber, numberOfDigits, 4);
+                else
+                    sum += temp;
+                break; 
+            case 9:
+                sum += SillyNumber(currentNumber, numberOfDigits, 3);
+                break;
+            case 10:
+                temp = SillyNumber(currentNumber, numberOfDigits, 2);
+                if (temp == 0)
+                    sum += SillyNumber(currentNumber, numberOfDigits, 5);
+                else
+                    sum += temp;
+                break;
+        }
+        currentNumber++;
+    }
+
+    return sum;
+}
+
+long SillyNumber(long number, int digits, int compare)
+{    
+    int first = (int)(number % Math.Pow(10,compare));
+    int compared = compare;
+    while(compared < digits)
+    {
+        int next = (int) ((number / Math.Pow(10,compared)) % Math.Pow(10, compare));
+        if (first != next)
+            return 0;
+        compared += compare;
+    }
+    return number;
+}
+
 struct Range(long start, long end)
 {
     public long Start = start; public long End = end;

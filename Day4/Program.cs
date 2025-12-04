@@ -11,11 +11,13 @@ try
 char[][] map = TransformMap(lines);
 
 Console.WriteLine($"Part 1: {CountAccessablePaperRolls(map)}");
-//Console.WriteLine($"Part 2: {}");
+Console.WriteLine($"Part 2: {CountAndRemovePaperRolls(map)}");
 
 return 0;
 
 /* Transform it into a char array and adds a border.
+ * The char array is for part to that require change to the map.
+ * The border avoids a lot of out of bound checks.
  */
 char[][] TransformMap(string[] lines)
 {
@@ -84,7 +86,67 @@ int CountAccessablePaperRolls( char[][] lines )
                 rolls++;
 
             if (rolls < 4)
-                count++;
+                count++;                
+        }
+    }
+    return count;
+}
+
+int CountAndRemovePaperRolls(char[][] lines)
+{
+    int count = 0;
+    bool removedRoll = true;
+
+    while (removedRoll) {
+        removedRoll = false;
+        for (int i = 1; i < lines.Length - 1; i++)
+        {
+            for (int j = 1; j < lines[i].Length - 1; j++)
+            {
+                if (lines[i][j] == '.')
+                    continue;
+
+                int rolls = 0;
+                // North West
+                if (lines[i - 1][j - 1] == '@')
+                    rolls++;
+
+                // North
+                if (lines[i - 1][j] == '@')
+                    rolls++;
+
+                // North East
+                if (lines[i - 1][j + 1] == '@')
+                    rolls++;
+
+                // West
+                if (lines[i][j - 1] == '@')
+                    rolls++;
+
+                // East
+                if (lines[i][j + 1] == '@')
+                    rolls++;
+
+                // South West
+                if (lines[i + 1][j - 1] == '@')
+                    rolls++;
+
+                // South
+                if (lines[i + 1][j] == '@')
+                    rolls++;
+
+                // South East
+                if (lines[i + 1][j + 1] == '@')
+                    rolls++;
+
+                if (rolls < 4) 
+                {
+                    removedRoll = true;
+                    count++;
+                    lines[i][j] = '.';
+                }
+                
+            }
         }
     }
     return count;

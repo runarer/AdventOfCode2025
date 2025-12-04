@@ -8,54 +8,79 @@ try
     return 1;
 }
 
+char[][] map = TransformMap(lines);
 
-
-Console.WriteLine($"Part 1: {CountAccessablePaperRolls(lines)}");
+Console.WriteLine($"Part 1: {CountAccessablePaperRolls(map)}");
 //Console.WriteLine($"Part 2: {}");
 
 return 0;
 
-int CountAccessablePaperRolls( string[] lines )
+/* Transform it into a char array and adds a border.
+ */
+char[][] TransformMap(string[] lines)
+{
+    char[][] map = new char[lines.Length+2][];
+    map[0] = new char[ lines[0].Length +2 ];
+    Array.Fill(map[0], '.');
+
+    for(int i = 0; i < lines.Length; i++)
+    {
+        map[i+1] = new char[lines[0].Length + 2];
+        map[i + 1][0] = '.';
+        for(int j = 0; j < lines[i].Length; j++)
+        {
+            map[i+1][j+1] = lines[i][j];
+        }
+        map[i + 1][^1] = '.';
+    }
+
+    map[^1] = new char[lines[0].Length + 2];
+    Array.Fill(map[^1], '.');
+
+    return map;
+}
+
+int CountAccessablePaperRolls( char[][] lines )
 {
     int count = 0;
-    for (int i = 0; i < lines.Length; i++)
+    for (int i = 1; i < lines.Length-1; i++)
     {
-        for (int j = 0; j < lines[i].Length; j++)
+        for (int j = 1; j < lines[i].Length-1; j++)
         {
             if (lines[i][j] == '.')
                 continue;
 
             int rolls = 0;
             // North West
-            if (i > 0 && j > 0 && lines[i-1][j-1] == '@')
+            if (lines[i-1][j-1] == '@')
                     rolls++;
 
             // North
-            if(i > 0 && lines[i - 1][j] == '@')
+            if(lines[i - 1][j] == '@')
                 rolls++;
 
             // North East
-            if (i > 0 && j < lines[i].Length-1 && lines[i - 1][j + 1] == '@')
+            if (lines[i - 1][j + 1] == '@')
                 rolls++;
 
             // West
-            if (j > 0 && lines[i][j-1] == '@')
+            if (lines[i][j-1] == '@')
                 rolls++;
 
             // East
-            if (j < lines[i].Length-1 && lines[i][j + 1] == '@')
+            if (lines[i][j + 1] == '@')
                 rolls++;
 
             // South West
-            if ( i < lines.Length-1 && j > 0 && lines[i+1][j - 1] == '@')
+            if (lines[i+1][j - 1] == '@')
                 rolls++;
 
             // South
-            if (i < lines.Length-1 && lines[i + 1][j] == '@')
+            if (lines[i + 1][j] == '@')
                 rolls++;
 
             // South East
-            if (i < lines.Length-1 && j < lines[i].Length - 1 && lines[i + 1][j + 1] == '@')
+            if (lines[i + 1][j + 1] == '@')
                 rolls++;
 
             if (rolls < 4)

@@ -44,4 +44,12 @@ static long FindLargestRectangle((int, int)[] squares)
     return largest;
 }
 
-// 2147440389 to low
+/*  Part 2 For each point there's a vector pointing towards other points.
+ *  Ignore 1 wide/high rectangles.
+    First determine if it points out of the shape or invards. 
+    
+    This will give me to sets, squares inside and squares outside.
+    
+    Foreach inside square, see if any of the outside squares are inside the
+    borders. If not it's a contender.
+ */

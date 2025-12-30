@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace Day10
 {
-    internal class IndicatorLights(ushort targetLights, ushort[] buttons)
+    public class IndicatorLights(ushort targetLights, ushort[] buttons)
     {
         public ushort Lights { get; private set; } = 0;
         public ushort[] Buttons { get; private set; } = buttons;

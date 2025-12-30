@@ -25,7 +25,7 @@ namespace Day10
 
             for (int i = 0; i < lightsAsText.Length; i++)
             {                
-                if (lightsAsText[i] == '#')
+                if (lightsAsText[lightsAsText.Length - 1 - i] == '#')
                 {
                     lights = ( lights | 1 << i);
                 } 
@@ -55,7 +55,7 @@ namespace Day10
             return [..splitEachOnKommaAndParse.Select(ButtonToUshort)];
         }
 
-        public IndicatorLights CreateIndicatorLights(string line)
+        public static IndicatorLights CreateIndicatorLights(string line)
         {
             (string lightsText, string buttonsText, string joltageText) = Parser.SplitLine(line);
             ushort targetLights = Parser.LightsToUshort(lightsText);

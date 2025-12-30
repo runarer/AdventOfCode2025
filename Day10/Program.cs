@@ -11,14 +11,8 @@ try
     return 1;
 }
 
-//IndicatorLights[] lights = [..lines.Select(ParseLine)];
+IndicatorLights[] lights = [..lines.Select(Parser.CreateIndicatorLights)];
 
 
-_ = Parser.LightsToUshort(".##.");
 return 0;
-
-//IndicatorLights ParseLine(string line)
-//{
-//    return "";
-//}
 

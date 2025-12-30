@@ -30,13 +30,13 @@ namespace Day10.Tests
             Assert.Equal(joltageExpected, joltage);
         }
 
-        [Fact]
-        public void TestLightsToUshort_TakesString_ReturnsUshort()
+        [Theory]
+        [InlineData("...#.",2)]
+        [InlineData(".##.", 6)]
+        [InlineData(".###.#",29)]
+        public void TestLightsToUshort_TakesString_ReturnsUshort(string teststring, ushort expect)
         {
-            string line = ".##.";
-            ushort expect = 6;
-
-            ushort result = Parser.LightsToUshort(line);
+            ushort result = Parser.LightsToUshort(teststring);
 
             Assert.Equal(expect, result);
         }

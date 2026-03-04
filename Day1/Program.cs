@@ -34,29 +34,23 @@ int CountPassesAtZero(int[] numbers)
 {
     int count = 0;
     int dial = 50;
-    
-    // Need this, so we dont count starting at 0 and go negative.
-    int prevDial = dial; 
 
     foreach(int number in numbers)
     {
         int tempDial = dial + number;
 
-        // Avoid counting negatives that start from zero.
-        if (tempDial == 0|| (tempDial < 0 && prevDial != 0))
+        //// Avoid counting negatives that start from zero.
+        if (tempDial == 0|| (tempDial < 0 && dial != 0))
             count++;
 
         count += Math.Abs(tempDial / 100);
         
         dial = (tempDial % 100 + 100) % 100;
-        prevDial = dial;
     }
 
 
     return count;
 }
-
-
 
 int ParseLine(string line)
 {

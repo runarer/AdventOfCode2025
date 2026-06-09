@@ -10,7 +10,6 @@ try
 
 int[] numbers = [.. lines.Select(ParseLine)];
 
-
 Console.WriteLine($"Part 1: {CountDialAtZero(numbers)}");
 Console.WriteLine($"Part 2: {CountPassesAtZero(numbers)}");
 return 0;
@@ -40,7 +39,7 @@ int CountPassesAtZero(int[] numbers)
         int tempDial = dial + number;
 
         //// Avoid counting negatives that start from zero.
-        if (tempDial == 0|| (tempDial < 0 && dial != 0))
+        if (tempDial == 0 || (tempDial < 0 && dial != 0))
             count++;
 
         count += Math.Abs(tempDial / 100);

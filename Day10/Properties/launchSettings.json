@@ -3,7 +3,7 @@
     "Day10": {
       "commandName": "Project",
       "commandLineArgs": "day10.txt",
-      "workingDirectory": "C:\\Users\\runar\\AdventOfCode\\2025"
+      "workingDirectory": "C:\\Users\\runar\\Advent Of Code\\2025"
     }
   }
 }

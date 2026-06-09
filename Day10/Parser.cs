@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Day10
+﻿namespace Day10
 {
     public static class Parser
     {
@@ -19,22 +13,16 @@ namespace Day10
             return (lights, buttons, joltage);
         }
 
-        public static ushort LightsToUshort(string lightsAsText) 
+        public static int LightsToUshort(string lightsAsText) 
         {
-            int lights = 0;
-
-            for (int i = 0; i < lightsAsText.Length; i++)
-            {                
-                if (lightsAsText[lightsAsText.Length - 1 - i] == '#')
-                {
-                    lights = ( lights | 1 << i);
-                } 
-            }
-
-            return (ushort)lights;
+            // we want to reverse the string, because the first char is the least significant bit
+            char[] chars = lightsAsText.Replace('.', '0').Replace('#', '1').ToCharArray();
+            int lights = Convert.ToInt32(new string([.. chars.Reverse()]), 2);
+            
+            return lights;
         }
 
-        public static ushort ButtonToUshort(int[] buttonBits)
+        public static int ButtonToInt(int[] buttonBits)
         {
             int button = 0;
 
@@ -43,23 +31,22 @@ namespace Day10
                 button |= (1 << bit);
             }
 
-
-            return (ushort)button;
+            return button;
         }
 
-        public static ushort[] ButtonsToUshort(string buttonsAsText)
+        public static int[] ButtonsToUshort(string buttonsAsText)
         {
             var splitOnSpace = buttonsAsText.Split(' ');
             var trimOfEnds = splitOnSpace.Select(x => x.Trim(['(',')']));
             var splitEachOnKommaAndParse = trimOfEnds.Select(x => x.Split(',').Select(int.Parse).ToArray());
-            return [..splitEachOnKommaAndParse.Select(ButtonToUshort)];
+            return [..splitEachOnKommaAndParse.Select(ButtonToInt)];
         }
 
         public static IndicatorLights CreateIndicatorLights(string line)
         {
             (string lightsText, string buttonsText, string joltageText) = Parser.SplitLine(line);
-            ushort targetLights = Parser.LightsToUshort(lightsText);
-            ushort[] buttons = Parser.ButtonsToUshort(buttonsText);
+            int targetLights = LightsToUshort(lightsText);
+            int[] buttons = ButtonsToUshort(buttonsText);
 
             return new IndicatorLights(targetLights, buttons);
         }

@@ -47,8 +47,9 @@
             (string lightsText, string buttonsText, string joltageText) = Parser.SplitLine(line);
             int targetLights = LightsToUshort(lightsText);
             int[] buttons = ButtonsToUshort(buttonsText);
+            int[] targetJoltage = [.. joltageText.Split(',').Select(int.Parse)];
 
-            return new IndicatorLights(targetLights, buttons);
+            return new IndicatorLights(targetLights, buttons, targetJoltage);
         }
     }
 }

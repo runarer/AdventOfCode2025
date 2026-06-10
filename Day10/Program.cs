@@ -8,19 +8,23 @@ List<IndicatorLights> lights = [];
 
 string? line;
 int fewestPresses = 0;
+int fewestPressesForJoltage = 0;
 while ((line = await reader.ReadLineAsync()) is not null)
 {
-   fewestPresses += await FindFewestPresses(line);
+    var indicatorLights = Parser.CreateIndicatorLights(line);
+    fewestPresses += await FindFewestPresses(indicatorLights);
+    fewestPressesForJoltage += await FindFewestPressesForJoltage(indicatorLights);
 }
 
 Console.WriteLine($"Part 1: {fewestPresses}");
+Console.WriteLine($"Part 2: {fewestPressesForJoltage}");
 
 return 0;
 
 
-static async Task<int> FindFewestPresses(string line)
+static async Task<int> FindFewestPresses(IndicatorLights lights)
 {
-    var lights = Parser.CreateIndicatorLights(line);
+    //var lights = Parser.CreateIndicatorLights(line);
 
     // do a breath first search, need to keep track of wich values reached
     List<int> reachedLights = [];
@@ -48,4 +52,9 @@ static async Task<int> FindFewestPresses(string line)
     }
     // Should never happen and returning negative value could go unnoticed, so throw an exception instead
     throw new InvalidOperationException("No path found to target lights");
+}
+
+static async Task<int> FindFewestPressesForJoltage(IndicatorLights lights)
+{
+    return 0;
 }

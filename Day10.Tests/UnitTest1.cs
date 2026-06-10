@@ -58,7 +58,7 @@ namespace Day10.Tests
             string buttons = "(3) (1,3) (2) (2,3) (0,2) (0,1)";
             ushort[] expect = [8,10,4,12,5,3];
 
-            ushort[] result = Parser.ButtonsToUshort(buttons);
+            ushort[] result = Parser.ButtonsToInt(buttons);
 
             Assert.Equal(expect, result);
         }

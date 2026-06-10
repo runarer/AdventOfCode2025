@@ -34,22 +34,27 @@
             return button;
         }
 
-        public static int[] ButtonsToUshort(string buttonsAsText)
+        public static int[] ButtonsToInt(int[][] splitEachOnKommaAndParse)
+        {
+            return [..splitEachOnKommaAndParse.Select(ButtonToInt)];
+        }
+
+        public static int[][] ButtonsToIntArray(string buttonsAsText)
         {
             var splitOnSpace = buttonsAsText.Split(' ');
-            var trimOfEnds = splitOnSpace.Select(x => x.Trim(['(',')']));
-            var splitEachOnKommaAndParse = trimOfEnds.Select(x => x.Split(',').Select(int.Parse).ToArray());
-            return [..splitEachOnKommaAndParse.Select(ButtonToInt)];
+            var trimOfEnds = splitOnSpace.Select(x => x.Trim(['(', ')']));
+            return [.. trimOfEnds.Select(x => x.Split(',').Select(int.Parse).ToArray())];
         }
 
         public static IndicatorLights CreateIndicatorLights(string line)
         {
             (string lightsText, string buttonsText, string joltageText) = Parser.SplitLine(line);
             int targetLights = LightsToUshort(lightsText);
-            int[] buttons = ButtonsToUshort(buttonsText);
+            int[][] buttonsAsInt = ButtonsToIntArray(buttonsText);
+            int[] buttons = ButtonsToInt(buttonsAsInt);
             int[] targetJoltage = [.. joltageText.Split(',').Select(int.Parse)];
 
-            return new IndicatorLights(targetLights, buttons, targetJoltage);
+            return new IndicatorLights(targetLights, buttons, targetJoltage, buttonsAsInt);
         }
     }
 }

@@ -1,19 +1,38 @@
 ﻿using Day10;
 using System.Data;
+using System.Threading;
 
-await using var stream = new FileStream(args[0], FileMode.Open, FileAccess.Read);
-using var reader = new StreamReader(stream);
-
-List<IndicatorLights> lights = [];
-
-string? line;
 int fewestPresses = 0;
 int fewestPressesForJoltage = 0;
-while ((line = await reader.ReadLineAsync()) is not null)
+
+// Read all lines first so we can show a progress indicator with a known total.
+var allLines = await File.ReadAllLinesAsync(args[0]);
+int total = allLines.Length;
+var processingTasks = new List<Task<(int presses, int joltagePresses)>>();
+int completed = 0;
+
+for (int i = 0; i < total; i++)
 {
+    var line = allLines[i];
     var indicatorLights = Parser.CreateIndicatorLights(line);
-    fewestPresses += await FindFewestPresses(indicatorLights);
-    fewestPressesForJoltage += await FindFewestPressesForJoltage(indicatorLights);
+    // start processing this line on the thread-pool and capture the task
+    processingTasks.Add(Task.Run(async () =>
+    {
+        var p1 = await FindFewestPresses(indicatorLights);
+        var p2 = await FindFewestPressesForJoltage(indicatorLights);
+        var done = Interlocked.Increment(ref completed);
+        Console.Write($"\rProcessed {done}/{total} ({done * 100 / Math.Max(1, total)}%)");
+        return (p1, p2);
+    }));
+}
+
+if (processingTasks.Count > 0)
+{
+    var results = await Task.WhenAll(processingTasks);
+    // ensure progress line ends and moves to next line
+    Console.WriteLine();
+    fewestPresses = results.Sum(r => r.presses);
+    fewestPressesForJoltage = results.Sum(r => r.joltagePresses);
 }
 
 Console.WriteLine($"Part 1: {fewestPresses}");
@@ -25,7 +44,7 @@ return 0;
 static async Task<int> FindFewestPresses(IndicatorLights lights)
 {
     // do a breath first search, need to keep track of wich values reached
-    List<int> reachedLights = [];
+    var reachedLights = new List<int>();
     Queue<(int, int)> toVisit = new();    
     // We start with 0,
     toVisit.Enqueue((0, 0));
@@ -97,6 +116,47 @@ static async Task<int> FindFewestPressesForJoltage(IndicatorLights lights)
     // the target joltage or exceed the max presses for all buttons.
 
 
-    return 0;
+    // Iterate all combinations of presses using a mixed-radix odometer.
+    // Start from all zeros and increment until all combinations are exhausted.
+    Array.Clear(presses, 0, presses.Length);
+
+    while (true)
+    {
+        // Calculate current joltage based on presses and buttons matrix.
+        for (int i = 0; i < presses.Length; i++)
+        {
+            for (int j = 0; j < buttons.GetLength(1); j++)
+            {
+                if (buttons[i, j] == 1)
+                {
+                    current[j] += presses[i];
+                }
+            }
+        }
+
+        if (current.SequenceEqual(target))
+            return presses.Sum();
+
+        // reset current for next iteration
+        Array.Clear(current, 0, current.Length);
+
+        // increment presses like a mixed-radix counter where each digit's radix is maxPresses[i] + 1
+        int idx = 0;
+        while (idx < presses.Length)
+        {
+            presses[idx]++;
+            if (presses[idx] <= maxPresses[idx])
+                break; // no carry required
+
+            presses[idx] = 0; // carry to next digit
+            idx++;
+        }
+
+        // If we've carried past the last digit we've tried all combinations.
+        if (idx == presses.Length)
+            break;
+    }
+
+    throw new InvalidOperationException("No combination of presses reaches the target joltage");
     // AI is usefull for commenting code.
 }

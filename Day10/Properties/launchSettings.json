@@ -2,7 +2,7 @@
   "profiles": {
     "Day10": {
       "commandName": "Project",
-      "commandLineArgs": "day10.txt",
+      "commandLineArgs": "test10_2.txt",
       "workingDirectory": "C:\\Users\\runar\\Advent Of Code\\2025"
     }
   }

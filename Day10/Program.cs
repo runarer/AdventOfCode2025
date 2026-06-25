@@ -871,7 +871,67 @@ static void GaussElimination(int[,] matrix)
 
         foreach(int r in currentRows)
             AddRow(matrix, row, r, -1 * matrix[r, row]);
+    }
+}
 
-        //PrintMatrix(matrix);
+
+public struct Fraction
+{
+    public int Numerator { get; }
+    public int Denominator { get; }
+
+    public Fraction(int numerator, int denominator)
+    {
+        if (denominator == 0)
+        {
+            throw new ArgumentException("Denominator can't be zero.");
+        }
+
+        // Håndter negative fortegn slik at minusen alltid havner i telleren
+        if (denominator < 0)
+        {
+            numerator = -numerator;
+            denominator = -denominator;
+        }
+
+        // Finn største felles divisor for å forkorte brøken
+        int gcd = FindGcd(Math.Abs(numerator), denominator);
+
+        Numerator = numerator / gcd;
+        Denominator = denominator / gcd;
+    }
+
+    // Euklids algoritme for å finne største felles divisor
+    private static int FindGcd(int a, int b)
+    {
+        while (b != 0)
+        {
+            int temp = b;
+            b = a % b;
+            a = temp;
+        }
+        return a;
+    }
+
+    // Konverter brøken til et desimaltall (double)
+    public double ToDouble() => (double)Numerator / Denominator;
+
+    // Overstyr ToString for pen utskrift
+    public readonly override string ToString() => $"{Numerator}/{Denominator}";
+
+    // Overload addisjonsoperatøren (+) for å plusse sammen to brøker
+    public static Fraction operator +(Fraction b1, Fraction b2)
+    {
+        // Formel: (t1 * n2 + t2 * n1) / (n1 * n2)
+        int nyTeller = (b1.Numerator * b2.Denominator) + (b2.Numerator * b1.Denominator);
+        int nyNevner = b1.Denominator * b2.Denominator;
+        return new Fraction(nyTeller, nyNevner);
+    }
+
+    // Overload multiplikasjonsoperatøren (*) for å gange sammen to brøker
+    public static Fraction operator *(Fraction b1, Fraction b2)
+    {
+        // Formel: (t1 * t2) / (n1 * n2)
+        return new Fraction(b1.Numerator * b2.Numerator, b1.Denominator * b2.Denominator);
     }
 }

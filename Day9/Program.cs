@@ -1,4 +1,7 @@
-﻿// The border is clockwise for my input
+﻿// Part 2 check all rectangles for walls crossing. And select the largest one
+// A possible optimazation is to change part one to return a list of all the rectangles
+// and then sort it with the larges first. Return top for part 1 answer, and check
+// list form the top for crossing walls, the first one without any is the answer to part 2.
 
 string[] lines = [];
 
@@ -48,53 +51,36 @@ static long FindLargestRectangle((int, int)[] squares)
     return largest;
 }
 
-
 static long FindLargestInnerRectangle((int X, int Y)[] squares)
 {
     long largest = 0;
 
-    //1. The start index is the most norther and western tile.
-    int row = squares.Min(s => s.Y);
-    int col = squares.Where(s => s.Y == row).Min(s => s.X);
-    int startIndex = Array.FindIndex(squares, s => s.X == col && s.Y == row);
-
-    //2. Direction is determined by the next tile in the array. If it's to the right,
-    //   clockwive, if it's down, counterclockwise.
-    int nextIndex = (startIndex + 1) % squares.Length; // Wrap around to the beginning of the array if necessary
-
-    //3. Create a list of walls for each direction.
+    //1. Create a list of walls for horizontal and vertical walls.
     List<Wall> horizontal = [];
     List<Wall> vertical = [];
 
-    int currentIndex = startIndex;
-    for (int i = startIndex + 1; i != startIndex; i = (i + 1) % squares.Length)
+    int currentIndex = 0;
+    for (int i = 1; i < squares.Length; i++)
     {
-        (int x1, int y1) = squares[currentIndex];
-        (int x2, int y2) = squares[i];
+        (int x1, int y1) = squares[i];
+        (int x2, int y2) = squares[i-1];
         if (x1 == x2) // Vertical wall
         {
             int start = Math.Min(y1, y2);
             int end   = Math.Max(y1, y2);
-            if (y1 < y2) // East facing
-                vertical.Add(new Wall(start, end, x1, Direction.East));
-            else // West facing
-                vertical.Add(new Wall(start, end, x1, Direction.West));
+            vertical.Add(new Wall(start, end, x1));
         }
-        else //if (y1 == y2) // Horizontal wall
+        else // Horizontal wall
         {
             int start = Math.Min(x1, x2);
             int end   = Math.Max(x1, x2);
-            if (x1 < x2) // North facing
-                horizontal.Add(new Wall(start, end, y1, Direction.North));
-            else // South facing
-                horizontal.Add(new Wall(start, end, y1, Direction.South));
+            horizontal.Add(new Wall(start, end, y1));
         }
         currentIndex = i;
     }
 
-    //4. For each possible rectangle, make sure any wall inside the rectangle is only
-    //   at the borders and that it's facing outwards.
-    //   If so, calculate the area and update if it's the largest.
+    //2. For each possible rectangle, check for walls crossing the rectangle.
+    //   If there are no walls, check if it's the largest rectangle found so far.
     for (int i = 0; i < squares.Length; i++)
     {
         for (int j = i + 1; j < squares.Length; j++)
@@ -117,26 +103,27 @@ static long FindLargestInnerRectangle((int X, int Y)[] squares)
 
             foreach(var wall in horizontal)
             {
-                if(yStart < wall.Fixed && yEnd > wall.Fixed)
+                if( yStart < wall.Fixed && yEnd > wall.Fixed   &&  
+                   ((wall.Start <= xStart && wall.End >= xEnd) ||
+                    (wall.End > xStart && wall.End < xEnd)     || 
+                    ( wall.Start > xStart && wall.Start < xEnd)))
                 {
-                    if ((wall.Start <= xStart && wall.End >= xEnd)||(wall.End > xStart && wall.End < xEnd) || ( wall.Start > xStart && wall.Start < xEnd) )
-                    {
-                        conflictingWall = true;
-                        break;
-                    }
-                }                   
-            }
+                    conflictingWall = true;
+                    break;
+                }
+            }                  
             if(conflictingWall)
                 continue;
+
             foreach (var wall in vertical)
             {
-                if (xStart < wall.Fixed && xEnd > wall.Fixed)
+                if (xStart < wall.Fixed && xEnd > wall.Fixed &&
+                  ((wall.Start <= yStart && wall.End >= yEnd)|| 
+                   (wall.End > yStart && wall.End < yEnd)    || 
+                   (wall.Start > yStart && wall.Start < yEnd)))
                 {
-                    if ((wall.Start <= yStart && wall.End >= yEnd) || (wall.End > yStart && wall.End < yEnd) || (wall.Start > yStart && wall.Start < yEnd))
-                    {
-                        conflictingWall = true;
-                        break;
-                    }
+                    conflictingWall = true;
+                    break;
                 }
             }
                 
@@ -148,38 +135,9 @@ static long FindLargestInnerRectangle((int X, int Y)[] squares)
     return largest;
 }
 
-/*  Part 2 For each point there's a vector pointing towards other points.
- *  Ignore 1 wide/high rectangles.
-    First determine if it points out of the shape or invards. 
-    
-    This will give me to sets, squares inside and squares outside.
-    
-    Foreach inside square, see if any of the outside squares are inside the
-    borders. If not it's a contender.
- */
-
-// Find top horizontal line -> this is max in rows
-// (int row, int col) Corners
-// (int row, int start, int end) horizontalLines
-// (int col, int start, int end) verticalLines
-
-//foreach horizontalLine check downwards if it hits other horizontal lines
-// Calculate area
-//Do the same for vertical lines
-
-readonly struct Wall(int Start, int End, int Fixed, Direction Direction)
+readonly struct Wall(int Start, int End, int Fixed)
 {
     public int Start { get; } = Start;
     public int End { get; } = End;
     public int Fixed { get; } = Fixed;
-    public Direction Direction { get; } = Direction;
 }
-
-enum Direction
-{
-    North,
-    East,
-    South,
-    West
-}
-

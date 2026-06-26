@@ -53,16 +53,20 @@ for (int i = 0; i < total; i++)
     var line = allLines[i];
     var indicatorLights = Parser.CreateIndicatorLights(line);
 
-    int[,] matrix = CreateMatrix(indicatorLights);
+    Fraction[,] matrix = CreateMatrix(indicatorLights);
     PrintMatrix(matrix);
 
     //RemoveZeroJoltage(indicatorLights);
-    GaussElimination(matrix);
+    GaussElimination(indicatorLights,matrix);
 
     //int[,] matrix2 = CreateMatrix(indicatorLights);
     PrintMatrix(matrix);
 
-
+    int[,] intMatrix = ConvertToIntegerMatrix(matrix);
+    PrintMatrix(intMatrix);
+    int p = ReduceKnownValues(intMatrix);
+    PrintMatrix(intMatrix);
+    Console.WriteLine($"{i}: {p}");
     //int index = i;
     //var localIndicatorLights = indicatorLights;
     //if (solvedFlag[index])
@@ -115,6 +119,44 @@ Console.WriteLine($"Part 2: {fewestPressesForJoltage}");
 
 return 0;
 
+
+static async Task<int> FindFewestPressesGauss(IndicatorLights lights)
+{
+    Fraction[,] matrix = CreateMatrix(lights);
+    //PrintMatrix(matrix);
+
+    //RemoveZeroJoltage(indicatorLights);
+    GaussElimination(lights, matrix);
+
+    //int[,] matrix2 = CreateMatrix(indicatorLights);
+    //PrintMatrix(matrix);
+
+    int[,] intMatrix = ConvertToIntegerMatrix(matrix);
+    //PrintMatrix(intMatrix);
+    int presses = ReduceKnownValues(intMatrix);
+    //PrintMatrix(intMatrix);
+
+    bool allZero = true;
+    foreach(var number in intMatrix)
+    {
+
+        if(number != 0)
+        {
+            allZero = false;
+            break;
+        }
+    }
+    
+    if(allZero)
+        return presses;
+    return PermuteOnUnknowns(lights,intMatrix);
+}
+
+static int PermuteOnUnknowns(IndicatorLights lights, int[,] matrix)
+{
+    List<int> unknownIndexs = [];
+    return -1;
+}
 
 static async Task<int> FindFewestPresses(IndicatorLights lights)
 {
@@ -669,42 +711,42 @@ static int Presses(int[] joltage, int[] targetJoltage, int[][] buttons, int butt
 //    return (p1, p2);
 //}));
 
-static int[,] CreateMatrix(IndicatorLights indicators)
-{
-    int[,] matrix = new int[indicators.TargetJoltage.Length, indicators.ButtonsArray.Length + 1];
+//static int[,] CreateMatrix(IndicatorLights indicators)
+//{
+//    int[,] matrix = new int[indicators.TargetJoltage.Length, indicators.ButtonsArray.Length + 1];
 
-    for(int i = 0; i< indicators.TargetJoltage.Length; i++)
-    {
-        matrix[i, matrix.GetLength(1)-1] = indicators.TargetJoltage[i];
-    }
+//    for(int i = 0; i< indicators.TargetJoltage.Length; i++)
+//    {
+//        matrix[i, matrix.GetLength(1)-1] = indicators.TargetJoltage[i];
+//    }
 
-    for(int button = 0; button < indicators.ButtonsArray.Length; button++)
-    {
-        foreach (var light in indicators.ButtonsArray[button])
-            matrix[light, button] = 1;
-    }
+//    for(int button = 0; button < indicators.ButtonsArray.Length; button++)
+//    {
+//        foreach (var light in indicators.ButtonsArray[button])
+//            matrix[light, button] = 1;
+//    }
 
-    return matrix;
-}
+//    return matrix;
+//}
 
-static void SwapRows(int[,] matrix, int row1, int row2)
-{
-    int[] temp = new int[matrix.GetLength(1)];
+//static void SwapRows(int[,] matrix, int row1, int row2)
+//{
+//    int[] temp = new int[matrix.GetLength(1)];
 
-    if (row1 >= matrix.GetLength(0) || row1 < 0)
-        throw new ArgumentOutOfRangeException(nameof(row1));
-    if (row2 >= matrix.GetLength(0) || row2 < 0)
-        throw new ArgumentOutOfRangeException(nameof(row2));
+//    if (row1 >= matrix.GetLength(0) || row1 < 0)
+//        throw new ArgumentOutOfRangeException(nameof(row1));
+//    if (row2 >= matrix.GetLength(0) || row2 < 0)
+//        throw new ArgumentOutOfRangeException(nameof(row2));
 
-    for(int i = 0; i< temp.Length; i++)
-        temp[i] = matrix[row1, i];
-    for (int i = 0; i < temp.Length; i++)
-        matrix[row1, i] = matrix[row2, i];
-    for (int i = 0; i < temp.Length; i++)
-        matrix[row2, i] = temp[i];
-}
+//    for(int i = 0; i< temp.Length; i++)
+//        temp[i] = matrix[row1, i];
+//    for (int i = 0; i < temp.Length; i++)
+//        matrix[row1, i] = matrix[row2, i];
+//    for (int i = 0; i < temp.Length; i++)
+//        matrix[row2, i] = temp[i];
+//}
 
-static void AddRow(int[,] matrix, int row, int targetRow,int multiplier=1)
+static void AddRowInt(int[,] matrix, int row, int targetRow, int multiplier = 1)
 {
     if (row >= matrix.GetLength(0) || row < 0)
         throw new ArgumentOutOfRangeException(nameof(row));
@@ -712,19 +754,19 @@ static void AddRow(int[,] matrix, int row, int targetRow,int multiplier=1)
         throw new ArgumentOutOfRangeException(nameof(targetRow));
 
     for (int i = 0; i < matrix.GetLength(1); i++)
-        matrix[targetRow, i] += multiplier*matrix[row, i];
+        matrix[targetRow, i] += multiplier * matrix[row, i];
 }
 
-static void MultiplyRow(int[,] matrix, int row, int multiplier)
-{
-    if (row >= matrix.GetLength(0) || row < 0)
-        throw new ArgumentOutOfRangeException(nameof(row));
+//static void MultiplyRow(int[,] matrix, int row, int multiplier)
+//{
+//    if (row >= matrix.GetLength(0) || row < 0)
+//        throw new ArgumentOutOfRangeException(nameof(row));
 
-    for (int i = 0; i < matrix.GetLength(1); i++)
-        matrix[row, i] *= multiplier;
-}
+//    for (int i = 0; i < matrix.GetLength(1); i++)
+//        matrix[row, i] *= multiplier;
+//}
 
-static void DivideRow(int[,] matrix, int row, int multiplier)
+static void DivideRowInt(int[,] matrix, int row, int multiplier)
 {
     if (row >= matrix.GetLength(0) || row < 0)
         throw new ArgumentOutOfRangeException(nameof(row));
@@ -734,9 +776,217 @@ static void DivideRow(int[,] matrix, int row, int multiplier)
 }
 
 
-static void SwapColumns(int[,] matrix,int col1, int col2)
+//static void SwapColumns(int[,] matrix,int col1, int col2)
+//{
+//    int[] temp = new int[matrix.GetLength(0)];
+
+//    if (col1 >= matrix.GetLength(1) - 1 || col1 < 0)
+//        throw new ArgumentOutOfRangeException(nameof(col1));
+//    if (col2 >= matrix.GetLength(1) - 1 || col2 < 0)
+//        throw new ArgumentOutOfRangeException(nameof(col2));
+
+//    for (int i = 0; i < temp.Length; i++)
+//        temp[i] = matrix[i,col2];
+//    for (int i = 0; i < temp.Length; i++)
+//        matrix[i,col2] = matrix[i,col1];
+//    for (int i = 0; i < temp.Length; i++)
+//        matrix[i,col1] = temp[i];
+//}
+
+static void PrintMatrix<T>(T[,] matrix)
 {
-    int[] temp = new int[matrix.GetLength(0)];
+    Console.WriteLine();
+    for (int i = 0; i < matrix.GetLength(0); i++)
+    {
+        for (int j = 0; j < matrix.GetLength(1); j++)
+            Console.Write($"{matrix[i, j],5}");
+
+        Console.WriteLine();
+    }
+    Console.WriteLine();
+}
+
+//static void RemoveZeroJoltage(IndicatorLights indicators)
+//{
+//    // If joltage is 0 remove it and buttons 
+//    for(int i = 0; i < indicators.TargetJoltage.Length; i++)
+//    {
+//        if(indicators.TargetJoltage[i] == 0)
+//        {
+
+//            // Remove Buttons with i in list.
+//            List<int> toRemove = [];
+//            for(int j = 0; j < indicators.ButtonsArray.Length; j++)
+//                if (indicators.ButtonsArray[j].Contains(i))
+//                    toRemove.Add(j);
+
+//            int removed = 0;
+//            for(int j = 0; j < indicators.ButtonsArray.Length-toRemove.Count; j++)
+//            {
+//                if(toRemove.Contains(j))
+//                {
+//                    removed++;
+//                }
+//                if(removed != 0)
+//                    indicators.ButtonsArray[j] = indicators.ButtonsArray[j + removed];
+//            }
+//            Array.Resize(ref indicators.ButtonsArray, indicators.ButtonsArray.Length - removed);
+
+//            // Update buttons, below i keep, above i subtract one.
+//            for (int j = 0; j < indicators.ButtonsArray.Length; j++)
+//            {
+//                for(int k = 0; k < indicators.ButtonsArray[j].Length; k++)
+//                {
+//                    if (indicators.ButtonsArray[j][k] > i)
+//                        indicators.ButtonsArray[j][k]--;
+//                }
+//            }                    
+
+//            // Remove joltage
+//            for (int j = i; j < indicators.TargetJoltage.Length-1; j++)
+//                indicators.TargetJoltage[j] = indicators.TargetJoltage[j + 1];
+//            Array.Resize(ref indicators.TargetJoltage, indicators.TargetJoltage.Length - 1);
+//        }
+//    }
+//}
+
+//    // If there's only one button that adds joltage to a light
+//    // we can remove this button and remove joltage from other lights
+//    // it also adds to.
+
+//static void GaussElimination(int[,] matrix)
+//{
+//    int rows = matrix.GetLength(0);
+//    int cols = matrix.GetLength(1);
+//    for(int row = 0; row < rows && row < cols - 1; row++)
+//    {
+//        // Gets rows that got value in 
+//        List<int> currentRows = [];
+//        for(int i = row; i < rows; i++)        
+//            if (matrix[i,row] != 0)
+//                currentRows.Add(i);
+
+//        if(currentRows.Count == 0)
+//        {
+//            // We need to swap a columns
+//            int swapTo = row + 1;
+//            while (swapTo < cols-1 && matrix[row, swapTo] == 0) 
+//                swapTo++;
+//            if (swapTo == cols - 1)
+//                continue;
+//            SwapColumns(matrix, row, swapTo);
+//            for (int i = row; i < rows; i++)
+//                if (matrix[i, row] != 0)
+//                    currentRows.Add(i);
+//        }
+
+//        // Here we can check for conditions for selecting the row to move
+//        int keepRow = 0;
+
+//        // We want a row with 1 in the col, then prioritize based on number of lights affected, as few as possible
+//        int maxPresses = int.MaxValue;        
+//        foreach (int r in currentRows)
+//        {
+//            int sumPresses = 0;
+//            for (int lights = 0; lights < cols - 1; lights++)
+//                if (matrix[r, lights] != 0)
+//                    sumPresses++;
+//            if(sumPresses < maxPresses)
+//            {
+//                keepRow = r;
+//                maxPresses = sumPresses;
+//            }
+//        }
+//        if(row != keepRow)
+//        {
+//            SwapRows(matrix, row, keepRow);
+//            keepRow = row;
+//        }
+
+//        // Make matrix[row,row] == 1
+//        DivideRow(matrix, row, matrix[row, row]);
+
+
+//        // top is discovered and moved
+//        // Make all other rows 0 in col.
+//        currentRows.Remove(keepRow);
+
+//        foreach(int r in currentRows)
+//            AddRow(matrix, row, r, -1 * matrix[r, row]);
+//    }
+//}
+
+//--------------------------------------
+static Fraction[,] CreateMatrix(IndicatorLights indicators)
+{
+    Fraction[,] matrix = new Fraction[indicators.TargetJoltage.Length, indicators.ButtonsArray.Length + 1];
+
+    for (int i = 0; i < indicators.TargetJoltage.Length; i++)
+    {
+        matrix[i, matrix.GetLength(1) - 1] = new(indicators.TargetJoltage[i],1);
+    }
+
+    for (int button = 0; button < indicators.ButtonsArray.Length; button++)
+    {
+        for (int i = 0; i < matrix.GetLength(0); i++)
+            matrix[i, button] = new(0, 1);
+        foreach (var light in indicators.ButtonsArray[button])
+            matrix[light, button] = new Fraction(1,1);
+    }
+
+    return matrix;
+}
+
+static void SwapRows(Fraction[,] matrix, int row1, int row2)
+{
+    Fraction[] temp = new Fraction[matrix.GetLength(1)];
+
+    if (row1 >= matrix.GetLength(0) || row1 < 0)
+        throw new ArgumentOutOfRangeException(nameof(row1));
+    if (row2 >= matrix.GetLength(0) || row2 < 0)
+        throw new ArgumentOutOfRangeException(nameof(row2));
+
+    for (int i = 0; i < temp.Length; i++)
+        temp[i] = matrix[row1, i];
+    for (int i = 0; i < temp.Length; i++)
+        matrix[row1, i] = matrix[row2, i];
+    for (int i = 0; i < temp.Length; i++)
+        matrix[row2, i] = temp[i];
+}
+
+static void AddRow(Fraction[,] matrix, int row, int targetRow, Fraction multiplier)
+{
+    if (row >= matrix.GetLength(0) || row < 0)
+        throw new ArgumentOutOfRangeException(nameof(row));
+    if (targetRow >= matrix.GetLength(0) || targetRow < 0)
+        throw new ArgumentOutOfRangeException(nameof(targetRow));
+
+    for (int i = 0; i < matrix.GetLength(1); i++)
+        matrix[targetRow, i] += multiplier * matrix[row, i];
+}
+
+static void MultiplyRow(Fraction[,] matrix, int row, Fraction multiplier)
+{
+    if (row >= matrix.GetLength(0) || row < 0)
+        throw new ArgumentOutOfRangeException(nameof(row));
+
+    for (int i = 0; i < matrix.GetLength(1); i++)
+        matrix[row, i] *= multiplier;
+}
+
+static void DivideRow(Fraction[,] matrix, int row, Fraction multiplier)
+{
+    if (row >= matrix.GetLength(0) || row < 0)
+        throw new ArgumentOutOfRangeException(nameof(row));
+
+    for (int i = 0; i < matrix.GetLength(1); i++)
+        matrix[row, i] /= multiplier;
+}
+
+
+static void SwapColumns(Fraction[,] matrix, int col1, int col2)
+{
+    Fraction[] temp = new Fraction[matrix.GetLength(0)];
 
     if (col1 >= matrix.GetLength(1) - 1 || col1 < 0)
         throw new ArgumentOutOfRangeException(nameof(col1));
@@ -744,97 +994,89 @@ static void SwapColumns(int[,] matrix,int col1, int col2)
         throw new ArgumentOutOfRangeException(nameof(col2));
 
     for (int i = 0; i < temp.Length; i++)
-        temp[i] = matrix[i,col2];
+        temp[i] = matrix[i, col2];
     for (int i = 0; i < temp.Length; i++)
-        matrix[i,col2] = matrix[i,col1];
+        matrix[i, col2] = matrix[i, col1];
     for (int i = 0; i < temp.Length; i++)
-        matrix[i,col1] = temp[i];
+        matrix[i, col1] = temp[i];
 }
 
-static void PrintMatrix(int[,] matrix)
+static int FindLargestDeterminator(Fraction[,] matrix, int row)
 {
-    Console.WriteLine();
-    for(int i = 0; i < matrix.GetLength(0); i++)
-    {
-        for (int j = 0; j < matrix.GetLength(1); j++)
-            Console.Write($"{matrix[i, j],5}");
-        
-        Console.WriteLine();
-    }
-    Console.WriteLine();
+    int largest = 0;
+
+    if (row >= matrix.GetLength(0) || row < 0)
+        throw new ArgumentOutOfRangeException(nameof(row));
+    for (int i = 0; i < matrix.GetLength(1); i++)
+        largest = Math.Max(largest, matrix[row, i].Denominator);
+    return largest;
 }
 
-static void RemoveZeroJoltage(IndicatorLights indicators)
+static int[,] ConvertToIntegerMatrix(Fraction[,] matrix)
 {
-    // If joltage is 0 remove it and buttons 
-    for(int i = 0; i < indicators.TargetJoltage.Length; i++)
+    // For each row
+    for(int row = 0; row < matrix.GetLength(0); row++)
     {
-        if(indicators.TargetJoltage[i] == 0)
+        int largest = 0;
+        do
         {
-
-            // Remove Buttons with i in list.
-            List<int> toRemove = [];
-            for(int j = 0; j < indicators.ButtonsArray.Length; j++)
-                if (indicators.ButtonsArray[j].Contains(i))
-                    toRemove.Add(j);
-            
-            int removed = 0;
-            for(int j = 0; j < indicators.ButtonsArray.Length-toRemove.Count; j++)
-            {
-                if(toRemove.Contains(j))
-                {
-                    removed++;
-                }
-                if(removed != 0)
-                    indicators.ButtonsArray[j] = indicators.ButtonsArray[j + removed];
-            }
-            Array.Resize(ref indicators.ButtonsArray, indicators.ButtonsArray.Length - removed);
-
-            // Update buttons, below i keep, above i subtract one.
-            for (int j = 0; j < indicators.ButtonsArray.Length; j++)
-            {
-                for(int k = 0; k < indicators.ButtonsArray[j].Length; k++)
-                {
-                    if (indicators.ButtonsArray[j][k] > i)
-                        indicators.ButtonsArray[j][k]--;
-                }
-            }                    
-
-            // Remove joltage
-            for (int j = i; j < indicators.TargetJoltage.Length-1; j++)
-                indicators.TargetJoltage[j] = indicators.TargetJoltage[j + 1];
-            Array.Resize(ref indicators.TargetJoltage, indicators.TargetJoltage.Length - 1);
-        }
+            largest = FindLargestDeterminator(matrix, row);
+            MultiplyRow(matrix, row, new(largest, 1));
+        } while (largest != 1);
     }
+
+    int[,] intMatrix = new int[matrix.GetLength(0),matrix.GetLength(1)];
+    for (int i = 0; i < matrix.GetLength(0); i++)
+        for (int j = 0; j < matrix.GetLength(1); j++)
+            intMatrix[i, j] = matrix[i, j].Numerator;
+
+    return intMatrix;
 }
 
-    // If there's only one button that adds joltage to a light
-    // we can remove this button and remove joltage from other lights
-    // it also adds to.
+//static void PrintMatrix(Fraction[,] matrix)
+//{
+//    Console.WriteLine();
+//    for (int i = 0; i < matrix.GetLength(0); i++)
+//    {
+//        for (int j = 0; j < matrix.GetLength(1); j++)
+//            Console.Write($"{matrix[i, j],5}");
 
-static void GaussElimination(int[,] matrix)
+//        Console.WriteLine();
+//    }
+//    Console.WriteLine();
+//}
+
+static void SwapButtons(IndicatorLights indicators, int buttonA, int buttonB )
+{
+    int[] temp = indicators.ButtonsArray[buttonA];
+    indicators.ButtonsArray[buttonA] = indicators.ButtonsArray[buttonB];
+    indicators.ButtonsArray[buttonB] = temp;
+}
+
+static void GaussElimination(IndicatorLights inducators,Fraction[,] matrix)
 {
     int rows = matrix.GetLength(0);
     int cols = matrix.GetLength(1);
-    for(int row = 0; row < rows && row < cols - 1; row++)
+    for (int row = 0; row < rows && row < cols - 1; row++)
     {
         // Gets rows that got value in 
         List<int> currentRows = [];
-        for(int i = row; i < rows; i++)        
-            if (matrix[i,row] != 0)
+        for (int i = row; i < rows; i++)
+            if (matrix[i, row].Numerator != 0)
                 currentRows.Add(i);
 
-        if(currentRows.Count == 0)
+        if (currentRows.Count == 0)
         {
             // We need to swap a columns
             int swapTo = row + 1;
-            while (swapTo < cols-1 && matrix[row, swapTo] == 0) 
+            while (swapTo < cols - 1 && matrix[row, swapTo].Numerator == 0)
                 swapTo++;
             if (swapTo == cols - 1)
                 continue;
             SwapColumns(matrix, row, swapTo);
+            SwapButtons(inducators, row, swapTo);
             for (int i = row; i < rows; i++)
-                if (matrix[i, row] != 0)
+                if (matrix[i, row].Numerator != 0)
                     currentRows.Add(i);
         }
 
@@ -842,20 +1084,20 @@ static void GaussElimination(int[,] matrix)
         int keepRow = 0;
 
         // We want a row with 1 in the col, then prioritize based on number of lights affected, as few as possible
-        int maxPresses = int.MaxValue;        
+        int maxPresses = int.MaxValue;
         foreach (int r in currentRows)
         {
             int sumPresses = 0;
             for (int lights = 0; lights < cols - 1; lights++)
-                if (matrix[r, lights] != 0)
+                if (matrix[r, lights].Numerator != 0)
                     sumPresses++;
-            if(sumPresses < maxPresses)
+            if (sumPresses < maxPresses)
             {
                 keepRow = r;
                 maxPresses = sumPresses;
             }
         }
-        if(row != keepRow)
+        if (row != keepRow)
         {
             SwapRows(matrix, row, keepRow);
             keepRow = row;
@@ -869,10 +1111,63 @@ static void GaussElimination(int[,] matrix)
         // Make all other rows 0 in col.
         currentRows.Remove(keepRow);
 
-        foreach(int r in currentRows)
-            AddRow(matrix, row, r, -1 * matrix[r, row]);
+        Fraction negative = new(-1, 1);
+
+        foreach (int r in currentRows)
+            AddRow(matrix, row, r, negative * matrix[r, row]);
     }
 }
+
+static int ReduceKnownValues(int[,] matrix)
+{
+    int presses = 0;
+    bool reduce = true;
+    while(reduce)
+    {
+        reduce = false;
+        for(int row = 0; row < matrix.GetLength(0); row++)
+        {
+            bool justOne = false;
+            int index = 0;
+            for(int col = 0; col < matrix.GetLength(1) - 1; col++)
+            {
+                if (matrix[row,col] != 0)
+                {
+                    if (justOne)
+                    {
+                        justOne = false;
+                        break;
+                    }
+                    justOne = true;
+                    index = col;
+                }
+            }
+            if(justOne)
+            {// We have a known value of button 'index'
+                reduce = true; // this will require a rerun to discover changes done to the matrix
+
+                // Make it 1 = 
+                DivideRowInt(matrix, row, matrix[row, index]);
+                
+                presses += matrix[row,matrix.GetLength(1)-1] / matrix[row, index];
+
+                // Remove from matrix
+                // For every non zero in matrix[i,index] -> add line with right multiplier.
+                for(int r = 0; r < matrix.GetLength(0); r++)
+                {
+                    if (matrix[r,index] != 0)
+                    {
+                        AddRowInt(matrix, row, r, -1 * matrix[r,index]);
+                    }
+                }
+            }
+        }
+    }
+
+    return presses;
+}
+
+
 
 
 public struct Fraction
@@ -916,7 +1211,6 @@ public struct Fraction
     // Konverter brøken til et desimaltall (double)
     public double ToDouble() => (double)Numerator / Denominator;
 
-    // Overstyr ToString for pen utskrift
     public readonly override string ToString() => $"{Numerator}/{Denominator}";
 
     // Overload addisjonsoperatøren (+) for å plusse sammen to brøker
@@ -933,5 +1227,11 @@ public struct Fraction
     {
         // Formel: (t1 * t2) / (n1 * n2)
         return new Fraction(b1.Numerator * b2.Numerator, b1.Denominator * b2.Denominator);
+    }
+
+    public static Fraction operator /(Fraction b1, Fraction b2)
+    {
+        // Formel: (t1 * t2) / (n1 * n2)
+        return new Fraction(b1.Numerator * b2.Denominator, b1.Denominator * b2.Numerator);
     }
 }

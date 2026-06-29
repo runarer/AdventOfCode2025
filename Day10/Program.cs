@@ -66,6 +66,7 @@ for (int i = 0; i < total; i++)
     PrintMatrix(intMatrix);
     int p = ReduceKnownValues(intMatrix);
     PrintMatrix(intMatrix);
+    PermuteOnUnknowns(indicatorLights,intMatrix);
     Console.WriteLine($"{i}: {p}");
     //int index = i;
     //var localIndicatorLights = indicatorLights;
@@ -134,7 +135,7 @@ static async Task<int> FindFewestPressesGauss(IndicatorLights lights)
     int[,] intMatrix = ConvertToIntegerMatrix(matrix);
     //PrintMatrix(intMatrix);
     int presses = ReduceKnownValues(intMatrix);
-    //PrintMatrix(intMatrix);
+    PrintMatrix(intMatrix);
 
     bool allZero = true;
     foreach(var number in intMatrix)
@@ -151,11 +152,64 @@ static async Task<int> FindFewestPressesGauss(IndicatorLights lights)
         return presses;
     return PermuteOnUnknowns(lights,intMatrix);
 }
+ 
+static List<int> FindUnknowns(int[,] matrix)
+{
+    bool[] unknowns = new bool[matrix.GetLength(1) - 1];
+    Array.Fill(unknowns, true);
+
+    // Find the unknowns
+    for (int row = 0; row < matrix.GetLength(0) && row < matrix.GetLength(1) - 1; row++)
+    {
+        if (matrix[row, row] > 0)
+            unknowns[row] = false;
+    }
+
+    for (int idx = 0; idx < unknowns.Length; idx++)
+    {
+        bool allZeroes = true;
+        for (int row = 0; row < matrix.GetLength(0); row++)
+            if (matrix[row, idx] != 0)
+            {
+                allZeroes = false;
+                break;
+            }
+        if (allZeroes)
+        {
+            unknowns[idx] = false;
+        }
+    }
+
+    List<int> unknownIndexs = [];
+    for (int i = 0; i < unknowns.Length; i++)
+        if (unknowns[i])
+            unknownIndexs.Add(i);
+    return unknownIndexs;
+}
 
 static int PermuteOnUnknowns(IndicatorLights lights, int[,] matrix)
 {
-    List<int> unknownIndexs = [];
-    return -1;
+
+    List<int> unknownIndexs = FindUnknowns(matrix);
+
+    foreach(int index in unknownIndexs)
+        Console.Write($"{index} ");
+    Console.WriteLine();
+
+
+    // If col is all zero -> remove
+    // If matrix[row,col] > 0 -> remove, if both row and col exists.
+
+    // Find max values for unknowns
+
+    // Find min values for unknowns
+
+    // Permute all possabilities for the unknowns
+
+    int minSolution = int.MaxValue;
+
+
+    return minSolution;
 }
 
 static async Task<int> FindFewestPresses(IndicatorLights lights)

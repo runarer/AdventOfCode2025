@@ -48,75 +48,61 @@ Console.WriteLine($"Processing {total} lines, {solvedFlag.Count(f => f)} already
 
 for (int i = 0; i < total; i++)
 {
-    //if (i > 0) break;
-
     var line = allLines[i];
     var indicatorLights = Parser.CreateIndicatorLights(line);
 
-    Fraction[,] matrix = CreateMatrix(indicatorLights);
-    PrintMatrix(matrix);
-
-    //RemoveZeroJoltage(indicatorLights);
-    GaussElimination(indicatorLights,matrix);
-
-    //int[,] matrix2 = CreateMatrix(indicatorLights);
-    PrintMatrix(matrix);
-
-    int[,] intMatrix = ConvertToIntegerMatrix(matrix);
-    PrintMatrix(intMatrix);
-    int p = ReduceKnownValues(intMatrix);
-    PrintMatrix(intMatrix);
-    PermuteOnUnknowns(indicatorLights,intMatrix);
-    Console.WriteLine($"{i}: {p}");
-    //int index = i;
-    //var localIndicatorLights = indicatorLights;
-    //if (solvedFlag[index])
-    //{
-    //    processingTasks.Add(Task.Run(() =>
-    //    {
-    //        var s = solutions[index];
-    //        var done = Interlocked.Increment(ref completed);
-    //        Console.Write($"\rProcessed {done}/{total} ({done * 100 / Math.Max(1, total)}%)");
-    //        return (s.Item1, s.Item2);
-    //    }));
-    //}
-    //else
-    //{
-    //    processingTasks.Add(Task.Run(async () =>
-    //    {
-    //        var p1 = await FindFewestPresses(localIndicatorLights);
-    //        var p2 = await FindFewestPressesForJoltage(localIndicatorLights);
-    //        // store result in memory
-    //        solutions[index] = (p1, p2);
-    //        solvedFlag[index] = true;
-    //        // append to solved file
-    //        await fileSemaphore.WaitAsync();
-    //        try
-    //        {
-    //            await File.AppendAllTextAsync(solvedPath, $"{index},{p1},{p2}{Environment.NewLine}");
-    //        }
-    //        finally
-    //        {
-    //            fileSemaphore.Release();
-    //        }
-    //        var done = Interlocked.Increment(ref completed);
-    //        Console.Write($"\rProcessed {done}/{total} ({done * 100 / Math.Max(1, total)}%)");
-    //        return (p1, p2);
-    //    }));
-    //}
+    int index = i;
+    var localIndicatorLights = indicatorLights;
+    if (solvedFlag[index])
+    {
+        processingTasks.Add(Task.Run(() =>
+        {
+            var s = solutions[index];
+            var done = Interlocked.Increment(ref completed);
+            Console.Write($"\rProcessed {done}/{total} ({done * 100 / Math.Max(1, total)}%)");
+            return (s.Item1, s.Item2);
+        }));
+    }
+    else
+    {
+        processingTasks.Add(Task.Run(async () =>
+        {
+            var p1 = await FindFewestPresses(localIndicatorLights);
+            var p2 = await FindFewestPressesGauss(localIndicatorLights);
+            // store result in memory
+            solutions[index] = (p1, p2);
+            solvedFlag[index] = true;
+            // append to solved file
+            await fileSemaphore.WaitAsync();
+            try
+            {
+                await File.AppendAllTextAsync(solvedPath, $"{index},{p1},{p2}{Environment.NewLine}");
+            }
+            finally
+            {
+                fileSemaphore.Release();
+            }
+            var done = Interlocked.Increment(ref completed);
+            Console.Write($"\rProcessed {done}/{total} ({done * 100 / Math.Max(1, total)}%)");
+            return (p1, p2);
+        }));
+    }
 }
 
-//if (processingTasks.Count > 0)
-//{
-//    var results = await Task.WhenAll(processingTasks);
-//    // ensure progress line ends and moves to next line
-//    Console.WriteLine();
-//    fewestPresses = results.Sum(r => r.presses);
-//    fewestPressesForJoltage = results.Sum(r => r.joltagePresses);
-//}
+if (processingTasks.Count > 0)
+{
+    var results = await Task.WhenAll(processingTasks);
+    // ensure progress line ends and moves to next line
+    Console.WriteLine();
+    fewestPresses = results.Sum(r => r.presses);
+    fewestPressesForJoltage = results.Sum(r => r.joltagePresses);
+}
 
 Console.WriteLine($"Part 1: {fewestPresses}");
 Console.WriteLine($"Part 2: {fewestPressesForJoltage}");
+
+
+// 21469
 
 return 0;
 
@@ -124,18 +110,10 @@ return 0;
 static async Task<int> FindFewestPressesGauss(IndicatorLights lights)
 {
     Fraction[,] matrix = CreateMatrix(lights);
-    //PrintMatrix(matrix);
-
-    //RemoveZeroJoltage(indicatorLights);
     GaussElimination(lights, matrix);
 
-    //int[,] matrix2 = CreateMatrix(indicatorLights);
-    //PrintMatrix(matrix);
-
     int[,] intMatrix = ConvertToIntegerMatrix(matrix);
-    //PrintMatrix(intMatrix);
     int presses = ReduceKnownValues(intMatrix);
-    PrintMatrix(intMatrix);
 
     bool allZero = true;
     foreach(var number in intMatrix)
@@ -150,7 +128,7 @@ static async Task<int> FindFewestPressesGauss(IndicatorLights lights)
     
     if(allZero)
         return presses;
-    return PermuteOnUnknowns(lights,intMatrix);
+    return presses +  PermuteOnUnknowns(lights,intMatrix);
 }
  
 static List<int> FindUnknowns(int[,] matrix)
@@ -192,22 +170,93 @@ static int PermuteOnUnknowns(IndicatorLights lights, int[,] matrix)
 
     List<int> unknownIndexs = FindUnknowns(matrix);
 
-    foreach(int index in unknownIndexs)
-        Console.Write($"{index} ");
-    Console.WriteLine();
-
-
-    // If col is all zero -> remove
-    // If matrix[row,col] > 0 -> remove, if both row and col exists.
-
     // Find max values for unknowns
+    int[] maxValues = new int[unknownIndexs.Count];
+
+    // Det er en feil her ved max verdier, fungerer på de fleste, men det er flere som ikke
+    // finner løsninger innenfor begrensningene.
+    //for(int i = 0; i < unknownIndexs.Count;i++)
+    //{
+    //    int col = unknownIndexs[i];
+    //    int maxValue = 300;
+    //    for(int row = 0;row < matrix.GetLength(0); row++)
+    //    {
+    //        if (matrix[row, col] != 0)
+    //            maxValue = Math.Min(maxValue, matrix[row, matrix.GetLength(1) - 1] < 0 ? maxValue : matrix[row, matrix.GetLength(1) - 1]); // Dette kan være feil! 
+    //    }
+    //    maxValues[i] = maxValue;
+    //}
+
+    Array.Fill(maxValues, 200);
 
     // Find min values for unknowns
+    int[] minValues = new int[unknownIndexs.Count];
 
-    // Permute all possabilities for the unknowns
 
     int minSolution = int.MaxValue;
 
+    int[] presses = new int[matrix.GetLength(1)-1];
+
+    int[] currentUnknowns = new int[unknownIndexs.Count];
+    int permutations = maxValues.Aggregate(1, (acc, next) => acc * (next+1));
+    for (int i = 0; i < permutations; i++)
+    {
+        // Do calc
+        Array.Fill(presses, 0);
+        // Insert guest unknowns
+        for(int uIdx = 0; uIdx < unknownIndexs.Count; uIdx++)
+        {
+            presses[unknownIndexs[uIdx]] = currentUnknowns[uIdx];
+        }
+
+        bool validSolution = true;
+        int rows = Math.Min(matrix.GetLength(0), matrix.GetLength(1));
+        for (int row = rows - 1; row >= 0; row--)
+        {
+            if (matrix[row, row] == 0)
+                continue;
+            // Calculate new value, trekker fra kjente verdier
+            int currPress = matrix[row, matrix.GetLength(1) - 1];
+            for(int col = matrix.GetLength(1) - 2; col > row; col--)
+                currPress -= presses[col] * matrix[row, col];
+
+            // resultatet må være delig
+            if (currPress % matrix[row, row] != 0)
+            { 
+                validSolution = false;
+                break;
+            }
+
+            presses[row] = currPress / matrix[row, row];
+            
+            // Må ha et positivt antall press.
+            if(presses[row] < 0)
+            {
+                validSolution = false;
+                break;
+            }
+        }
+
+
+        // next permutation
+        currentUnknowns[0]++;
+        for (int j = 0; j < currentUnknowns.Length; j++)
+        {
+            if (currentUnknowns[j] > maxValues[j])
+            {
+                currentUnknowns[j] = 0;
+                if (j < currentUnknowns.Length - 1)
+                    currentUnknowns[j + 1]++;
+            }
+        }
+        ;
+        if (!validSolution)
+            continue;
+
+        // For return value
+        int sum = presses.Sum();
+        minSolution = Math.Min(sum, minSolution);
+    }
 
     return minSolution;
 }
@@ -242,120 +291,137 @@ static async Task<int> FindFewestPresses(IndicatorLights lights)
     throw new InvalidOperationException("No path found to target lights");
 }
 
-static async Task<int> FindFewestPressesForJoltageLP(IndicatorLights lights) 
-{
-    int buttonsNr = lights.ButtonsArray.Length;
-    int lightsNr = lights.TargetJoltage.Length;
-    int rows = lightsNr + 1;
-    int cols = buttonsNr + lightsNr + 1;
 
-    int[,] lpMatrix = new int[rows,cols];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//static async Task<int> FindFewestPressesForJoltageLP(IndicatorLights lights) 
+//{
+//    int buttonsNr = lights.ButtonsArray.Length;
+//    int lightsNr = lights.TargetJoltage.Length;
+//    int rows = lightsNr + 1;
+//    int cols = buttonsNr + lightsNr + 1;
+
+//    int[,] lpMatrix = new int[rows,cols];
     
-    // Insert buttons
-    for(int i = 0; i < lights.ButtonsArray.Length; i++)
-    {
-        foreach (var light in lights.ButtonsArray[i])
-            lpMatrix[light + 1, i] = 1;
-    }
+//    // Insert buttons
+//    for(int i = 0; i < lights.ButtonsArray.Length; i++)
+//    {
+//        foreach (var light in lights.ButtonsArray[i])
+//            lpMatrix[light + 1, i] = 1;
+//    }
 
-    // Add target joltage
-    for(int i=1; i < rows; i++)
-    {
-        lpMatrix[i, cols - 1] = lights.TargetJoltage[i-1];
-    }
+//    // Add target joltage
+//    for(int i=1; i < rows; i++)
+//    {
+//        lpMatrix[i, cols - 1] = lights.TargetJoltage[i-1];
+//    }
 
-    // create W
-    for(int i = 0; i< cols; i++)
-    {
-        for (int j = 1; j < rows; j++)
-            lpMatrix[0, i] += lpMatrix[j, i];
-    }
+//    // create W
+//    for(int i = 0; i< cols; i++)
+//    {
+//        for (int j = 1; j < rows; j++)
+//            lpMatrix[0, i] += lpMatrix[j, i];
+//    }
 
-    // Add artificial variables
-    for(int i = 0; i < lightsNr; i++)
-        lpMatrix[i+1,buttonsNr+i] = 1;
+//    // Add artificial variables
+//    for(int i = 0; i < lightsNr; i++)
+//        lpMatrix[i+1,buttonsNr+i] = 1;
 
 
-    // Print matrix
-    //for(int i = 0; i < rows; i++)
-    //{
-    //    for (int j = 0; j < cols; j++)
-    //    {
-    //        Console.Write(lpMatrix[i, j] + " ");
-    //    }
-    //    Console.WriteLine();
-    //}
+//    // Print matrix
+//    //for(int i = 0; i < rows; i++)
+//    //{
+//    //    for (int j = 0; j < cols; j++)
+//    //    {
+//    //        Console.Write(lpMatrix[i, j] + " ");
+//    //    }
+//    //    Console.WriteLine();
+//    //}
 
-    // Solve LP using simplex algorithm
-    // 
-    while (lpMatrix[0, cols - 1] != 0)
-    {
-        // Find lowes index of max coefficient in W
-        int maxIndex = 0;
-        int maxValue = int.MinValue;
-        for (int i = 0; i < buttonsNr; i++) // Finds max
-            maxValue = Math.Max(maxValue, lpMatrix[0, i]);
-        for (; lpMatrix[0,maxIndex] != maxValue; maxIndex++) ; // Finds index
+//    // Solve LP using simplex algorithm
+//    // 
+//    while (lpMatrix[0, cols - 1] != 0)
+//    {
+//        // Find lowes index of max coefficient in W
+//        int maxIndex = 0;
+//        int maxValue = int.MinValue;
+//        for (int i = 0; i < buttonsNr; i++) // Finds max
+//            maxValue = Math.Max(maxValue, lpMatrix[0, i]);
+//        for (; lpMatrix[0,maxIndex] != maxValue; maxIndex++) ; // Finds index
 
-        // We have the column, lets find the row with the smallest positive RHS to the coefficient in the column
-        int minRHS = int.MaxValue;
-        int minRHSIndex = 0;
-        for (int i = 1; i < rows; i++)
-        {
-            if (lpMatrix[i, maxIndex] == 0)
-                continue;
-            //if (lpMatrix[i, cols - 1] >= 0 && lpMatrix[i, cols - 1] < minRHS)
-            //{
-                minRHS = lpMatrix[i, cols - 1];
-                minRHSIndex = i;
-            //}
-            break;
-        }
+//        // We have the column, lets find the row with the smallest positive RHS to the coefficient in the column
+//        int minRHS = int.MaxValue;
+//        int minRHSIndex = 0;
+//        for (int i = 1; i < rows; i++)
+//        {
+//            if (lpMatrix[i, maxIndex] == 0)
+//                continue;
+//            //if (lpMatrix[i, cols - 1] >= 0 && lpMatrix[i, cols - 1] < minRHS)
+//            //{
+//                minRHS = lpMatrix[i, cols - 1];
+//                minRHSIndex = i;
+//            //}
+//            break;
+//        }
 
-        int pivotCol = maxIndex;
-        int rowToKeep = minRHSIndex;
+//        int pivotCol = maxIndex;
+//        int rowToKeep = minRHSIndex;
 
-        // Get a list of all rows that need to be made 0 in the pivot column.
-        List<int> rowsToSubtract = [];
-        for(int i = 0; i < rows; i++)
-        {
-            if(i == rowToKeep)
-                continue;
-            if (lpMatrix[i,pivotCol] != 0)
-                rowsToSubtract.Add(i);
-        }
+//        // Get a list of all rows that need to be made 0 in the pivot column.
+//        List<int> rowsToSubtract = [];
+//        for(int i = 0; i < rows; i++)
+//        {
+//            if(i == rowToKeep)
+//                continue;
+//            if (lpMatrix[i,pivotCol] != 0)
+//                rowsToSubtract.Add(i);
+//        }
 
-        // For each row in list we need to add values such that lpMatrix[row,pivotCol] becomes 0.
-        // The same value is added to each item in the row multiplied by lpMatrix[rowToKeep,item_col] > 0
-        // multiplied by
-        foreach(var row in rowsToSubtract)
-        {
-            int valueToAdd = lpMatrix[row, pivotCol] * lpMatrix[rowToKeep, pivotCol];
+//        // For each row in list we need to add values such that lpMatrix[row,pivotCol] becomes 0.
+//        // The same value is added to each item in the row multiplied by lpMatrix[rowToKeep,item_col] > 0
+//        // multiplied by
+//        foreach(var row in rowsToSubtract)
+//        {
+//            int valueToAdd = lpMatrix[row, pivotCol] * lpMatrix[rowToKeep, pivotCol];
 
-            // We need to add valueToAdd * lpMatrix[rowToKeep, item_col] to each item in the row.
-            for(int i = 0;i < cols; i++)
-            {
-                lpMatrix[row, i] -= valueToAdd * lpMatrix[rowToKeep, i];
-            }
-        }
+//            // We need to add valueToAdd * lpMatrix[rowToKeep, item_col] to each item in the row.
+//            for(int i = 0;i < cols; i++)
+//            {
+//                lpMatrix[row, i] -= valueToAdd * lpMatrix[rowToKeep, i];
+//            }
+//        }
 
-        //Console.WriteLine(lpMatrix[0, cols - 1]);
-    }
+//        //Console.WriteLine(lpMatrix[0, cols - 1]);
+//    }
 
-    int sum = 0;
-    for(int i = 1; i < rows; i++)
-    {
-        sum += lpMatrix[i, cols - 1];
-    }
-    return sum;
-}
+//    int sum = 0;
+//    for(int i = 1; i < rows; i++)
+//    {
+//        sum += lpMatrix[i, cols - 1];
+//    }
+//    return sum;
+//}
 
-static async Task<int> FindFewestPressesForJoltage(IndicatorLights lights)
-{
-    int[] joltage = new int[lights.TargetJoltage.Length];
-    var buttonsSorted = lights.ButtonsArray.OrderByDescending(lightList => lightList.Length).ToArray();
-    return Presses(joltage, lights.TargetJoltage, buttonsSorted, 0);
-}
+//static async Task<int> FindFewestPressesForJoltage(IndicatorLights lights)
+//{
+//    int[] joltage = new int[lights.TargetJoltage.Length];
+//    var buttonsSorted = lights.ButtonsArray.OrderByDescending(lightList => lightList.Length).ToArray();
+//    return Presses(joltage, lights.TargetJoltage, buttonsSorted, 0);
+//}
 //static async Task<int> FindFewestPressesForJoltage(IndicatorLights lights)
 //{
 //    // this is matrix with each row representing a button and each column representing a light, the value is 1
@@ -724,82 +790,6 @@ static int Presses(int[] joltage, int[] targetJoltage, int[][] buttons, int butt
  
  */
 
-//(int, int)[] partsSolutions = new (int, int)[allLines.Length];
-
-//using (var solutionFile = new FileStream("solved.txt", FileMode.OpenOrCreate))
-//{ 
-//    using var solutionReader = new StreamReader(solutionFile);
-//    var solutionsLines = solutionReader.ReadToEnd();
-//    var solved = solutionsLines.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries);
-
-//    for (int i = 0; i < solved.Length; i++)
-//    {
-//        var line = solved[i];
-//        var parts = line.Split(',');
-//        if (parts.Length != 3)
-//            continue;
-//        int index = int.Parse(parts[0]);
-//        int presses = int.Parse(parts[1]);
-//        int joltagePresses = int.Parse(parts[2]);
-//        fewestPresses += presses;
-//        fewestPressesForJoltage += joltagePresses;
-//        completed++;
-//        partsSolutions[index] = (presses, joltagePresses);
-//    }
-//}
-
-
-//processingTasks.Add(Task.Run(async () =>
-//{
-//    int index = i;
-//    if (partsSolutions[index] != (0, 0))
-//    {
-//        return partsSolutions[index];
-//    }
-//    var p1 = await FindFewestPresses(indicatorLights);
-//    var p2 = await FindFewestPressesForJoltage(indicatorLights);
-//    var done = Interlocked.Increment(ref completed);
-//    Console.Write($"\rProcessed {done}/{total} ({done * 100 / Math.Max(1, total)}%)");
-//    using var fs = StreamWriter.Synchronized(new StreamWriter("solved.txt", append: true));
-//    fs.WriteLine($"{index},{p1},{p2}");
-//    return (p1, p2);
-//}));
-
-//static int[,] CreateMatrix(IndicatorLights indicators)
-//{
-//    int[,] matrix = new int[indicators.TargetJoltage.Length, indicators.ButtonsArray.Length + 1];
-
-//    for(int i = 0; i< indicators.TargetJoltage.Length; i++)
-//    {
-//        matrix[i, matrix.GetLength(1)-1] = indicators.TargetJoltage[i];
-//    }
-
-//    for(int button = 0; button < indicators.ButtonsArray.Length; button++)
-//    {
-//        foreach (var light in indicators.ButtonsArray[button])
-//            matrix[light, button] = 1;
-//    }
-
-//    return matrix;
-//}
-
-//static void SwapRows(int[,] matrix, int row1, int row2)
-//{
-//    int[] temp = new int[matrix.GetLength(1)];
-
-//    if (row1 >= matrix.GetLength(0) || row1 < 0)
-//        throw new ArgumentOutOfRangeException(nameof(row1));
-//    if (row2 >= matrix.GetLength(0) || row2 < 0)
-//        throw new ArgumentOutOfRangeException(nameof(row2));
-
-//    for(int i = 0; i< temp.Length; i++)
-//        temp[i] = matrix[row1, i];
-//    for (int i = 0; i < temp.Length; i++)
-//        matrix[row1, i] = matrix[row2, i];
-//    for (int i = 0; i < temp.Length; i++)
-//        matrix[row2, i] = temp[i];
-//}
-
 static void AddRowInt(int[,] matrix, int row, int targetRow, int multiplier = 1)
 {
     if (row >= matrix.GetLength(0) || row < 0)
@@ -811,15 +801,6 @@ static void AddRowInt(int[,] matrix, int row, int targetRow, int multiplier = 1)
         matrix[targetRow, i] += multiplier * matrix[row, i];
 }
 
-//static void MultiplyRow(int[,] matrix, int row, int multiplier)
-//{
-//    if (row >= matrix.GetLength(0) || row < 0)
-//        throw new ArgumentOutOfRangeException(nameof(row));
-
-//    for (int i = 0; i < matrix.GetLength(1); i++)
-//        matrix[row, i] *= multiplier;
-//}
-
 static void DivideRowInt(int[,] matrix, int row, int multiplier)
 {
     if (row >= matrix.GetLength(0) || row < 0)
@@ -830,147 +811,6 @@ static void DivideRowInt(int[,] matrix, int row, int multiplier)
 }
 
 
-//static void SwapColumns(int[,] matrix,int col1, int col2)
-//{
-//    int[] temp = new int[matrix.GetLength(0)];
-
-//    if (col1 >= matrix.GetLength(1) - 1 || col1 < 0)
-//        throw new ArgumentOutOfRangeException(nameof(col1));
-//    if (col2 >= matrix.GetLength(1) - 1 || col2 < 0)
-//        throw new ArgumentOutOfRangeException(nameof(col2));
-
-//    for (int i = 0; i < temp.Length; i++)
-//        temp[i] = matrix[i,col2];
-//    for (int i = 0; i < temp.Length; i++)
-//        matrix[i,col2] = matrix[i,col1];
-//    for (int i = 0; i < temp.Length; i++)
-//        matrix[i,col1] = temp[i];
-//}
-
-static void PrintMatrix<T>(T[,] matrix)
-{
-    Console.WriteLine();
-    for (int i = 0; i < matrix.GetLength(0); i++)
-    {
-        for (int j = 0; j < matrix.GetLength(1); j++)
-            Console.Write($"{matrix[i, j],5}");
-
-        Console.WriteLine();
-    }
-    Console.WriteLine();
-}
-
-//static void RemoveZeroJoltage(IndicatorLights indicators)
-//{
-//    // If joltage is 0 remove it and buttons 
-//    for(int i = 0; i < indicators.TargetJoltage.Length; i++)
-//    {
-//        if(indicators.TargetJoltage[i] == 0)
-//        {
-
-//            // Remove Buttons with i in list.
-//            List<int> toRemove = [];
-//            for(int j = 0; j < indicators.ButtonsArray.Length; j++)
-//                if (indicators.ButtonsArray[j].Contains(i))
-//                    toRemove.Add(j);
-
-//            int removed = 0;
-//            for(int j = 0; j < indicators.ButtonsArray.Length-toRemove.Count; j++)
-//            {
-//                if(toRemove.Contains(j))
-//                {
-//                    removed++;
-//                }
-//                if(removed != 0)
-//                    indicators.ButtonsArray[j] = indicators.ButtonsArray[j + removed];
-//            }
-//            Array.Resize(ref indicators.ButtonsArray, indicators.ButtonsArray.Length - removed);
-
-//            // Update buttons, below i keep, above i subtract one.
-//            for (int j = 0; j < indicators.ButtonsArray.Length; j++)
-//            {
-//                for(int k = 0; k < indicators.ButtonsArray[j].Length; k++)
-//                {
-//                    if (indicators.ButtonsArray[j][k] > i)
-//                        indicators.ButtonsArray[j][k]--;
-//                }
-//            }                    
-
-//            // Remove joltage
-//            for (int j = i; j < indicators.TargetJoltage.Length-1; j++)
-//                indicators.TargetJoltage[j] = indicators.TargetJoltage[j + 1];
-//            Array.Resize(ref indicators.TargetJoltage, indicators.TargetJoltage.Length - 1);
-//        }
-//    }
-//}
-
-//    // If there's only one button that adds joltage to a light
-//    // we can remove this button and remove joltage from other lights
-//    // it also adds to.
-
-//static void GaussElimination(int[,] matrix)
-//{
-//    int rows = matrix.GetLength(0);
-//    int cols = matrix.GetLength(1);
-//    for(int row = 0; row < rows && row < cols - 1; row++)
-//    {
-//        // Gets rows that got value in 
-//        List<int> currentRows = [];
-//        for(int i = row; i < rows; i++)        
-//            if (matrix[i,row] != 0)
-//                currentRows.Add(i);
-
-//        if(currentRows.Count == 0)
-//        {
-//            // We need to swap a columns
-//            int swapTo = row + 1;
-//            while (swapTo < cols-1 && matrix[row, swapTo] == 0) 
-//                swapTo++;
-//            if (swapTo == cols - 1)
-//                continue;
-//            SwapColumns(matrix, row, swapTo);
-//            for (int i = row; i < rows; i++)
-//                if (matrix[i, row] != 0)
-//                    currentRows.Add(i);
-//        }
-
-//        // Here we can check for conditions for selecting the row to move
-//        int keepRow = 0;
-
-//        // We want a row with 1 in the col, then prioritize based on number of lights affected, as few as possible
-//        int maxPresses = int.MaxValue;        
-//        foreach (int r in currentRows)
-//        {
-//            int sumPresses = 0;
-//            for (int lights = 0; lights < cols - 1; lights++)
-//                if (matrix[r, lights] != 0)
-//                    sumPresses++;
-//            if(sumPresses < maxPresses)
-//            {
-//                keepRow = r;
-//                maxPresses = sumPresses;
-//            }
-//        }
-//        if(row != keepRow)
-//        {
-//            SwapRows(matrix, row, keepRow);
-//            keepRow = row;
-//        }
-
-//        // Make matrix[row,row] == 1
-//        DivideRow(matrix, row, matrix[row, row]);
-
-
-//        // top is discovered and moved
-//        // Make all other rows 0 in col.
-//        currentRows.Remove(keepRow);
-
-//        foreach(int r in currentRows)
-//            AddRow(matrix, row, r, -1 * matrix[r, row]);
-//    }
-//}
-
-//--------------------------------------
 static Fraction[,] CreateMatrix(IndicatorLights indicators)
 {
     Fraction[,] matrix = new Fraction[indicators.TargetJoltage.Length, indicators.ButtonsArray.Length + 1];
@@ -1086,19 +926,6 @@ static int[,] ConvertToIntegerMatrix(Fraction[,] matrix)
 
     return intMatrix;
 }
-
-//static void PrintMatrix(Fraction[,] matrix)
-//{
-//    Console.WriteLine();
-//    for (int i = 0; i < matrix.GetLength(0); i++)
-//    {
-//        for (int j = 0; j < matrix.GetLength(1); j++)
-//            Console.Write($"{matrix[i, j],5}");
-
-//        Console.WriteLine();
-//    }
-//    Console.WriteLine();
-//}
 
 static void SwapButtons(IndicatorLights indicators, int buttonA, int buttonB )
 {

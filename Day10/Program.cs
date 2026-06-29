@@ -3,8 +3,6 @@
     
     Bruker Gauss Elimination for å finne løsninger. Dersom systemet ikke går opp så permuteres det rundt et begrenset
     antall ukjente, for så å regne ut svaret.
-
-    Siden de første forsøkene gikk ganske treigt så er det en save funksjon. Dette er helt unødvendig med den endelige løsningen.
  */
 
 using Day10;
@@ -16,42 +14,6 @@ int fewestPressesForJoltage = 0;
 var allLines = await File.ReadAllLinesAsync(args[0]);
 int total = allLines.Length;
 var processingTasks = new List<Task<(int presses, int joltagePresses)>>();
-int completed = 0;
-
-
-// Load saved results from prevoius runs.
-(int, int)[] solutions = new (int, int)[total];
-bool[] solvedFlag = new bool[total];
-
-// solved.txt is stored next to the input file
-var solvedPath = Path.Combine(Path.GetDirectoryName(args[0]) ?? ".", "solved.txt");
-var fileSemaphore = new SemaphoreSlim(1, 1);
-
-// Load existing solutions if present
-if (File.Exists(solvedPath))
-{
-    var solvedLines = await File.ReadAllLinesAsync(solvedPath);
-    foreach (var sline in solvedLines)
-    {
-        if (string.IsNullOrWhiteSpace(sline))
-            continue;
-        var parts = sline.Split(',');
-        if (parts.Length < 3)
-            continue;
-        if (!int.TryParse(parts[0], out var idx))
-            continue;
-        if (idx < 0 || idx >= total)
-            continue;
-        if (!int.TryParse(parts[1], out var p1))
-            continue;
-        if (!int.TryParse(parts[2], out var p2))
-            continue;
-        solutions[idx] = (p1, p2);
-        solvedFlag[idx] = true;
-    }
-}
-
-Console.WriteLine($"Processing {total} lines, {solvedFlag.Count(f => f)} already solved.");
 
 
 // Solve the puzzles, async since each line is its own puzzle. 
@@ -63,57 +25,25 @@ for (int i = 0; i < total; i++)
     int index = i;
     var localIndicatorLights = indicatorLights;
 
-    // 
-    if (solvedFlag[index])
-    {
-        processingTasks.Add(Task.Run(() =>
-        {
-            var s = solutions[index];
-            var done = Interlocked.Increment(ref completed);
-            Console.Write($"\rProcessed {done}/{total} ({done * 100 / Math.Max(1, total)}%)");
-            return (s.Item1, s.Item2);
-        }));
-    }
-    else
-    {
+
         processingTasks.Add(Task.Run(async () =>
         {
             var p1 = await FindFewestPresses(localIndicatorLights);
             var p2 = await FindFewestPressesGauss(localIndicatorLights);
-            // store result in memory
-            solutions[index] = (p1, p2);
-            solvedFlag[index] = true;
-            // append to solved file
-            await fileSemaphore.WaitAsync();
-            try
-            {
-                await File.AppendAllTextAsync(solvedPath, $"{index},{p1},{p2}{Environment.NewLine}");
-            }
-            finally
-            {
-                fileSemaphore.Release();
-            }
-            var done = Interlocked.Increment(ref completed);
-            Console.Write($"\rProcessed {done}/{total} ({done * 100 / Math.Max(1, total)}%)");
             return (p1, p2);
         }));
-    }
+    
 }
 
 if (processingTasks.Count > 0)
 {
     var results = await Task.WhenAll(processingTasks);
-    // ensure progress line ends and moves to next line
-    Console.WriteLine();
     fewestPresses = results.Sum(r => r.presses);
     fewestPressesForJoltage = results.Sum(r => r.joltagePresses);
 }
 
 Console.WriteLine($"Part 1: {fewestPresses}");
 Console.WriteLine($"Part 2: {fewestPressesForJoltage}");
-
-
-// 21469
 
 return 0;
 

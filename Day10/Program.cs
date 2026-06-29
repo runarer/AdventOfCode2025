@@ -1,10 +1,13 @@
 ﻿/*
     Den mest optimale måten å løse del 2 på er med LP, dette kan jeg ikke så en bruteforce metode er brukt.
     
+    Bruker Gauss Elimination for å finne løsninger. Dersom systemet ikke går opp så permuteres det rundt et begrenset
+    antall ukjente, for så å regne ut svaret.
+
+    Siden de første forsøkene gikk ganske treigt så er det en save funksjon. Dette er helt unødvendig med den endelige løsningen.
  */
 
 using Day10;
-using System.Data;
 
 int fewestPresses = 0;
 int fewestPressesForJoltage = 0;
@@ -15,11 +18,15 @@ int total = allLines.Length;
 var processingTasks = new List<Task<(int presses, int joltagePresses)>>();
 int completed = 0;
 
+
+// Load saved results from prevoius runs.
 (int, int)[] solutions = new (int, int)[total];
 bool[] solvedFlag = new bool[total];
+
 // solved.txt is stored next to the input file
 var solvedPath = Path.Combine(Path.GetDirectoryName(args[0]) ?? ".", "solved.txt");
 var fileSemaphore = new SemaphoreSlim(1, 1);
+
 // Load existing solutions if present
 if (File.Exists(solvedPath))
 {
@@ -46,6 +53,8 @@ if (File.Exists(solvedPath))
 
 Console.WriteLine($"Processing {total} lines, {solvedFlag.Count(f => f)} already solved.");
 
+
+// Solve the puzzles, async since each line is its own puzzle. 
 for (int i = 0; i < total; i++)
 {
     var line = allLines[i];
@@ -53,6 +62,8 @@ for (int i = 0; i < total; i++)
 
     int index = i;
     var localIndicatorLights = indicatorLights;
+
+    // 
     if (solvedFlag[index])
     {
         processingTasks.Add(Task.Run(() =>
